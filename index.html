@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- 移动端适配，唤起内置键盘 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>英语单词默写（UNIT1 到social media）</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, sans-serif;
+        }
+        body {
+            padding: 30px 20px;
+            background-color: #f4f7fa;
+            text-align: center;
+        }
+        .stat-panel{
+            background:#fff;
+            padding:12px;
+            border-radius:8px;
+            margin-bottom:25px;
+            font-size:18px;
+            display:flex;
+            justify-content: space-around;
+        }
+        .tip-word {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom:20px;
+            color:#222;
+        }
+        .time-box {
+            font-size:28px;
+            color:#e63946;
+            margin-bottom:30px;
+        }
+        #inputWord {
+            width: 100%;
+            font-size:26px;
+            padding:14px;
+            border:2px solid #999;
+            border-radius:8px;
+            outline:none;
+        }
+        .info {
+            margin-top:25px;
+            font-size:18px;
+            color:#555;
+        }
+    </style>
+</head>
+<body>
+    <div class="stat-panel">
+        <div>✅正确：<span id="correct">0</span></div>
+        <div>❌答错：<span id="wrong">0</span></div>
+        <div>⏱超时：<span id="timeout">0</span></div>
+    </div>
+    <div class="tip-word">中文释义：<span id="wordShow"></span></div>
+    <div class="time-box">剩余时间：<span id="timer">10</span> s</div>
+    <input type="text" id="inputWord" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+    <div class="info">输入完成直接回车提交</div>
+
+<script>
+// ==========单词库 UNIT1 截止 social media ==========
+const wordList = [
+    {tip:"较高的，高级的", answer:"senior"},
+    {tip:"中等教育；中级的；次要的", answer:"secondary"},
+    {tip:"充满压力的，紧张的", answer:"stressful"},
+    {tip:"富有挑战性的", answer:"challenging"},
+    {tip:"不同，不一样，有区别", answer:"differ"},
+    {tip:"以前的，先前的", answer:"previous"},
+    {tip:"充满活力的；精力充沛的", answer:"dynamic"},
+    {tip:"校园", answer:"campus"},
+    {tip:"日程表，计划表", answer:"schedule"},
+    {tip:"期待；预料，预期", answer:"expectation"},
+    {tip:"自信，信心；信赖", answer:"confidence"},
+    {tip:"能力，胜任", answer:"competence"},
+    {tip:"一段时期；章节", answer:"chapter"},
+    {tip:"总而言之，总的来说", answer:"all in all"},
+    {tip:"公寓套房", answer:"apartment"},
+    {tip:"午前，上午", answer:"am"},
+    {tip:"（工厂、医院等轮班制的）当班时间", answer:"shift"},
+    {tip:"压力", answer:"pressure"},
+    {tip:"空闲，闲暇，业余时间", answer:"leisure"},
+    {tip:"恢复健康，康复", answer:"recover"},
+    {tip:"伤，损害", answer:"injury"},
+    {tip:"有利的，好的；加", answer:"plus"},
+    {tip:"不幸地；令人遗憾地", answer:"unfortunately"},
+    {tip:"挑战；具有挑战性的事物；向……挑战", answer:"challenge"},
+    {tip:"（问题或困难）出现，发生", answer:"arise"},
+    {tip:"生活方式", answer:"lifestyle"},
+    {tip:"闲谈，聊天", answer:"chat"},
+    {tip:"冲浪", answer:"surf"},
+    {tip:"网上冲浪，浏览因特网", answer:"surf the Internet"},
+    {tip:"志愿的；服务的；自愿的", answer:"voluntary"},
+    {tip:"引擎", answer:"engine"},
+    {tip:"搜索引擎", answer:"search engine"},
+    {tip:"确切地，肯定地", answer:"definitely"},
+    {tip:"少年，十几岁的孩子", answer:"teen"},
+    {tip:"笔记本电脑，便携式电脑", answer:"laptop"},
+    {tip:"数字的，数码的", answer:"digital"},
+    {tip:"本地人", answer:"native"},
+    {tip:"一系列；范围", answer:"range"},
+    {tip:"各种各样的；多种（类型）的", answer:"various"},
+    {tip:"（计算机）硬件", answer:"hardware"},
+    {tip:"必需品", answer:"necessity"},
+    {tip:"方便的，便利的", answer:"convenient"},
+    {tip:"质量，品质", answer:"quality"},
+    {tip:"有时；偶尔；间或", answer:"from time to time"},
+    {tip:"起居室", answer:"living room"},
+    {tip:"对……着迷的人", answer:"addict"},
+    {tip:"按……所说，根据", answer:"according to"},
+    {tip:"亲自", answer:"in person"},
+    {tip:"新闻媒体，大众传播媒介（总称）", answer:"media"},
+    {tip:"社交媒体", answer:"social media"}
+];
+let currentIndex = 0;
+let countdownTimer = null;
+let remainTime = 10;
+//统计变量
+let countCorrect = 0;
+let countWrong = 0;
+let countTimeout = 0;
+
+const wordShowEl = document.getElementById("wordShow");
+const inputEl = document.getElementById("inputWord");
+const timerEl = document.getElementById("timer");
+const elCorrect = document.getElementById("correct");
+const elWrong = document.getElementById("wrong");
+const elTimeout = document.getElementById("timeout");
+
+//更新统计面板显示
+function refreshStat(){
+    elCorrect.innerText = countCorrect;
+    elWrong.innerText = countWrong;
+    elTimeout.innerText = countTimeout;
+}
+
+//加载当前单词
+function loadWord(){
+    if(currentIndex >= wordList.length){
+        clearInterval(countdownTimer);
+        const total = countCorrect + countWrong + countTimeout;
+        const rate = ((countCorrect / total)*100).toFixed(1);
+        alert(`🎉全部默写完成！\n总题数：${total}\n✅正确：${countCorrect}\n❌答错：${countWrong}\n⏱超时：${countTimeout}\n🏆正确率：${rate}%`);
+        inputEl.disabled = true;
+        return;
+    }
+    const current = wordList[currentIndex];
+    wordShowEl.innerText = current.tip;
+    remainTime = 10;
+    timerEl.innerText = remainTime;
+    inputEl.value = "";
+    inputEl.disabled = false;
+    //自动聚焦唤起手机内置键盘
+    inputEl.focus();
+    startCountDown();
+}
+
+//10秒倒计时
+function startCountDown(){
+    clearInterval(countdownTimer);
+    countdownTimer = setInterval(()=>{
+        remainTime--;
+        timerEl.innerText = remainTime;
+        if(remainTime <=0){
+            clearInterval(countdownTimer);
+            countTimeout++;
+            refreshStat();
+            alert("⏱超时！判定错误");
+            currentIndex++;
+            loadWord();
+        }
+    },1000);
+}
+
+//回车提交答案
+inputEl.onkeydown = function(e){
+    if(e.key === 'Enter'){
+        clearInterval(countdownTimer);
+        const userAns = inputEl.value.trim().toLowerCase();
+        const rightAns = wordList[currentIndex].answer.toLowerCase();
+        if(userAns === rightAns){
+            countCorrect++;
+            alert("✅回答正确！");
+        }else{
+            countWrong++;
+            alert(`❌答案错误！正确答案：${rightAns}`);
+        }
+        refreshStat();
+        currentIndex++;
+        loadWord();
+    }
+}
+
+//页面加载启动
+window.onload = ()=>{
+    loadWord();
+}
+</script>
+</body>
+</html>
